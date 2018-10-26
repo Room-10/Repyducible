@@ -16,8 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import logging
-
 class Data(object):
     name = ""
     default_params = {
@@ -27,7 +25,6 @@ class Data(object):
     }
 
     def __init__(self, seed=None):
-        logging.info("Data setup.")
         if seed is not None:
             np.random.seed(seed=seed)
 
