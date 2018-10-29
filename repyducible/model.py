@@ -105,8 +105,8 @@ class PDBaseModel(object):
         G = self.pdhg_G
         F = self.pdhg_F
         linop = self.pdhg_linop
-        from opymize.tools.tests import test_gpu_op, test_adjoint_op
-        test_adjoint_op(linop)
+        from opymize.tools.tests import test_gpu_op, test_adjoint
+        test_adjoint(linop)
         for op in [linop, linop.adjoint,
                    G.prox(0.5 + np.random.rand()),
                    F.conj.prox(0.5 + np.random.rand())]:
