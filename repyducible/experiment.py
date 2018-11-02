@@ -66,8 +66,8 @@ class Experiment(object):
         logging.debug("Args: %s" % args)
 
         self.init_params()
-        self.restore_params()
         self.restore_data()
+        self.restore_params()
         self.params['data'].update(eval("dict(%s)" % self.pargs.data_params))
         self.params['model'].update(eval("dict(%s)" % self.pargs.model_params))
         self.params['solver'].update(eval("dict(%s)" % self.pargs.solver_params))
