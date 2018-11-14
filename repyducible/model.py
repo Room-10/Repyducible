@@ -27,16 +27,23 @@ class CvxSolver(object):
         self.constraints = constraints
         self.objective = obj
         self.prob = cvx.Problem(obj, constraints)
+        self.x = np.zeros(sum(v.size for v in self.variables))
+        self.y = np.zeros(sum(c.size for c in self.constraints))
 
     def solve(self, continue_at=None):
         if continue_at is not None:
             self.init_vars(*continue_at)
-        self.prob.solve(verbose=True, warm_start=True)
-        self.x = np.concatenate([v.value.ravel() for v in self.variables])
-        self.y = np.concatenate([c.dual_value.ravel() for c in self.constraints])
+        self.prob.solve(verbose=True, warm_start=True, solver="MOSEK")
+        if self.prob.status not in ["infeasible", "unbounded"]:
+            self.x[:] = np.hstack([v.value.ravel() for v in self.variables])
+            self.y[:] = np.hstack([c.dual_value.ravel() for c in self.constraints])
+        else:
+            logging.info("Warning: problem %s" % self.prob.status)
         return { 'objp': self.prob.value, 'status': self.prob.status }
 
     def init_vars(self, x, y):
+        self.x[:x.size] = x[:self.x.size]
+        self.y[:y.size] = y[:self.y.size]
         i = 0
         for v in self.variables:
             if i+v.size >= x.size: break
