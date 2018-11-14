@@ -31,7 +31,7 @@ class CvxSolver(object):
     def solve(self, continue_at=None):
         if continue_at is not None:
             self.init_vars(*continue_at)
-        self.prob.solve(verbose=False, warm_start=True)
+        self.prob.solve(verbose=True, warm_start=True)
         self.x = np.concatenate([v.value.ravel() for v in self.variables])
         self.y = np.concatenate([c.dual_value.ravel() for c in self.constraints])
         return { 'objp': self.prob.value, 'status': self.prob.status }
