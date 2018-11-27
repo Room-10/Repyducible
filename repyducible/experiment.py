@@ -68,9 +68,6 @@ class Experiment(object):
         self.init_params()
         self.restore_data()
         self.restore_params()
-        self.params['data'].update(eval("dict(%s)" % self.pargs.data_params))
-        self.params['model'].update(eval("dict(%s)" % self.pargs.model_params))
-        self.params['solver'].update(eval("dict(%s)" % self.pargs.solver_params))
 
     def init_params(self):
         self.params = {
@@ -87,6 +84,7 @@ class Experiment(object):
             self.params.update(params)
 
     def restore_data(self):
+        self.params['data'].update(eval("dict(%s)" % self.pargs.data_params))
         self.data_file = os.path.join(self.output_dir, 'data.pickle')
         self.data = data_from_file(self.data_file, format="pickle")
         if self.data is None:
@@ -95,6 +93,8 @@ class Experiment(object):
         self.data.apply_default_params(self.params)
 
     def run(self):
+        self.params['model'].update(eval("dict(%s)" % self.pargs.model_params))
+        self.params['solver'].update(eval("dict(%s)" % self.pargs.solver_params))
         pickle.dump(self.params, open(self.params_file, 'wb'))
 
         self.model = self.ModelClass(self.data, **self.params['model'])
