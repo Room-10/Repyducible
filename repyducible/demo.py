@@ -53,10 +53,10 @@ def modules_demo(Experiment, data_modules, model_modules, args):
                         choices=model_modules.keys(),
                         help='One of the available models: %s.' \
                               % ", ".join(model_modules.keys()))
-    parser.add_argument('params', metavar='PARAM', nargs='*', default=[],
-                        help='Params for this experiment.'
+    parser.add_argument('params', metavar='PARAMS', nargs='...',
+                        help='Params for this experiment. '
                              'For more information, specify DATASET and MODEL '
-                             ' and add --help to your command line.')
+                             'and add --help to your command line.')
     pargs = parser.parse_args(args)
 
     logging.info("Applying model '%s' to dataset '%s'." \
