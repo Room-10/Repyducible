@@ -19,6 +19,8 @@
 import logging
 import os
 import pickle
+import glob
+from datetime import datetime
 from argparse import ArgumentParser
 
 from repyducible.util import output_dir_name, output_dir_create, add_log_file,\
@@ -62,6 +64,9 @@ class Experiment(object):
         parser.add_argument('--solver-params', metavar='PARAMS',
                             default={}, type=str, action=DictAction,
                             help="Parameters to be passed to the solver engine.")
+        parser.add_argument('--snapshots', action="store_true", default=False,
+                            help="Store snapshots of solver iteration. "
+                                 "Only available for pdhg solver.")
         self.pargs = parser.parse_args(args)
 
         if self.pargs.output == '':
@@ -99,13 +104,15 @@ class Experiment(object):
         self.data = data_from_file(self.data_file, format="pickle")
         if self.data is None:
             self.data = self.DataClass(**self.params['data'])
-            pickle.dump(self.data, open(self.data_file, 'wb'))
+            with open(self.data_file, 'wb') as f:
+                pickle.dump(self.data, f)
         self.data.apply_default_params(self.params)
 
     def run(self):
         self.params['model'].update(self.pargs.model_params)
         self.params['solver'].update(self.pargs.solver_params)
-        pickle.dump(self.params, open(self.params_file, 'wb'))
+        with open(self.params_file, 'wb') as f:
+            pickle.dump(self.params, f)
 
         self.model = self.ModelClass(self.data, **self.params['model'])
 
@@ -117,15 +124,32 @@ class Experiment(object):
 
         if self.result is None or self.pargs.resume:
             self.model.setup_solver(self.pargs.solver)
-            details = self.model.solve(self.params['solver'])
+            params = self.params['solver']
+            if self.pargs.snapshots:
+                params = dict(params, cbfun=self.store_snapshot)
+            details = self.model.solve(params)
             self.result = {
                 'data': self.model.state,
                 'details': details,
             }
-            pickle.dump(self.result, open(self.result_file, 'wb'))
+            with open(self.result_file, 'wb') as f:
+                pickle.dump(self.result, f)
+
+        self.snapshots = []
+        if self.pargs.snapshots:
+            snapshot_path = os.path.join(self.output_dir, "snapshot-*.pickle")
+            for snap in glob.glob(snapshot_path):
+                self.snapshots.append(data_from_file(snap, format="pickle"))
 
         self.postprocessing()
         self.plot()
+
+    def store_snapshot(self, i, state, info):
+        outfile = os.path.join(self.output_dir, "snapshot-%s-%d.pickle"
+            % (datetime.now().strftime('%Y%m%d%H%M%S'), i))
+        outdata = { 'data': self.model.post(state), 'details': info }
+        with open(outfile, 'wb') as f:
+            pickle.dump(outdata, f)
 
     def postprocessing(self): pass
     def plot(self): pass
