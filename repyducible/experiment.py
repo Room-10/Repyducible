@@ -138,7 +138,7 @@ class Experiment(object):
         self.snapshots = []
         if self.pargs.snapshots:
             snapshot_path = os.path.join(self.output_dir, "snapshot-*.pickle")
-            for snap in glob.glob(snapshot_path):
+            for snap in sorted(glob.glob(snapshot_path)):
                 self.snapshots.append(data_from_file(snap, format="pickle"))
 
         self.postprocessing()
