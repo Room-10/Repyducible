@@ -28,6 +28,7 @@ import pickle
 import inspect
 import re
 import importlib
+import argparse
 from datetime import datetime
 
 import logging
@@ -141,3 +142,45 @@ def backup_source(obj, output_dir, extra=[]):
     for f in sum([glob.glob(extraf) for extraf in extra],[]):
         zipf.write(f)
     zipf.close()
+
+class DictAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string):
+        valdict = getattr(namespace, self.dest, {})
+        valdict.update(eval("dict(%s)" % values))
+        setattr(namespace, self.dest, valdict)
+
+def ValidatedDictAction(params):
+    class VDictAction(argparse.Action):
+        def __call__(self, parser, namespace, values, option_string):
+            valdict = getattr(namespace, self.dest, {})
+            try:
+                test = eval("dict(%s)" % values)
+            except (SyntaxError, NameError):
+                parser._print_message(
+                    "Invalid parameter string for %s: %s\n"
+                    % (option_string, values))
+                parser.exit()
+            for t in test.keys():
+                if not t in params:
+                    parser._print_message(
+                        "Parameter %s unknown. Supported parameters for %s: %s\n"
+                        % (t, option_string, ", ".join(params)))
+                    parser.exit()
+            valdict.update(test)
+            setattr(namespace, self.dest, valdict)
+
+    return VDictAction
+
+def get_params(obj):
+    if inspect.isclass(obj):
+        params = get_params(obj.__init__)
+        mro = inspect.getmro(obj)
+        if len(mro) > 1:
+            params += get_params(mro[1])
+        params = list(sorted(set(params)))
+        params.remove("self")
+        return params
+    else:
+        code = inspect.getfullargspec(obj)
+        params = list(code.args) + list(code.kwonlyargs)
+    return params

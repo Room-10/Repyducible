@@ -22,7 +22,8 @@ import pickle
 from argparse import ArgumentParser
 
 from repyducible.util import output_dir_name, output_dir_create, add_log_file,\
-                             backup_source, data_from_file
+                             backup_source, data_from_file, get_params, \
+                             DictAction, ValidatedDictAction
 
 class Experiment(object):
     name = ""
@@ -31,6 +32,11 @@ class Experiment(object):
     def __init__(self, DataClass, ModelClass, args):
         self.DataClass = DataClass
         self.ModelClass = ModelClass
+        valid_data_params = get_params(self.DataClass)
+        valid_data_params_str = ", ".join(valid_data_params)
+        valid_model_params = get_params(self.ModelClass)
+        valid_model_params.remove("data")
+        valid_model_params_str = ", ".join(valid_model_params)
 
         parser = ArgumentParser(prog='', description="See README.md.")
         parser.add_argument('--output', metavar='OUTPUT_DIR',
@@ -42,16 +48,20 @@ class Experiment(object):
         parser.add_argument('--plot', metavar='PLOT_MODE', default="show",
                             type=str, help="Plot mode (show|hide|no).")
         parser.add_argument('--data-params', metavar='PARAMS',
-                            default='', type=str,
-                            help="Params to be passed to the data generator.")
+                            default={}, type=str,
+                            action=ValidatedDictAction(valid_data_params),
+                            help="Parameters to be passed to the data generator. "
+                                 "Valid parameters: %s" % valid_data_params_str)
         parser.add_argument('--model-params', metavar='PARAMS',
-                            default='', type=str,
-                            help="Params to be applied to the model.")
+                            default={}, type=str,
+                            action=ValidatedDictAction(valid_model_params),
+                            help="Parameters to be applied to the model. "
+                                 "Valid parameters: %s" % valid_model_params_str)
         parser.add_argument('--solver', metavar='SOLVER', default="pdhg",
                             type=str, help="Solver engine (pdhg|cvx).")
         parser.add_argument('--solver-params', metavar='PARAMS',
-                            default='', type=str,
-                            help="Params to be passed to the solver engine.")
+                            default={}, type=str, action=DictAction,
+                            help="Parameters to be passed to the solver engine.")
         self.pargs = parser.parse_args(args)
 
         if self.pargs.output == '':
@@ -84,7 +94,7 @@ class Experiment(object):
             self.params.update(params)
 
     def restore_data(self):
-        self.params['data'].update(eval("dict(%s)" % self.pargs.data_params))
+        self.params['data'].update(self.pargs.data_params)
         self.data_file = os.path.join(self.output_dir, 'data.pickle')
         self.data = data_from_file(self.data_file, format="pickle")
         if self.data is None:
@@ -93,8 +103,8 @@ class Experiment(object):
         self.data.apply_default_params(self.params)
 
     def run(self):
-        self.params['model'].update(eval("dict(%s)" % self.pargs.model_params))
-        self.params['solver'].update(eval("dict(%s)" % self.pargs.solver_params))
+        self.params['model'].update(self.pargs.model_params)
+        self.params['solver'].update(self.pargs.solver_params)
         pickle.dump(self.params, open(self.params_file, 'wb'))
 
         self.model = self.ModelClass(self.data, **self.params['model'])
