@@ -109,27 +109,43 @@ def data_from_file(path, format="np"):
     except:
         return None
 
-def addDirToZip(zipHandle, path, exclude=[]):
-    """ Add directory given by `path` to opened zip file `zipHandle`
+def zip_add_dir(zipf, path, exclude=[]):
+    """ Add directory given by `path` to opened zip file `zipf`
 
     From https://stackoverflow.com/a/17020687
 
     Args:
-        zipHandle : a zipfile.ZipFile handle
+        zipf : a zipfile.ZipFile handle
         path : path to directory
         exclude : list of filenames to exclude
     """
 
-    basePath = path.rstrip("/").rpartition("/")[0] + "/"
+    base_path = path.rstrip("/").rpartition("/")[0] + "/"
     for root, dirs, files in os.walk(path):
         if os.path.basename(root) in exclude:
             continue
         # necessary for empty directories?
-        #zipHandle.write(os.path.join(root, "."))
+        #zipf.write(os.path.join(root, "."))
         for file in files:
-            filePath = os.path.join(root, file)
-            inZipPath = filePath.replace(basePath, "", 1).lstrip("\\/")
-            zipHandle.write(filePath, inZipPath)
+            file_path = os.path.join(root, file)
+            zipped_path = file_path.replace(base_path, "", 1).lstrip("\\/")
+            zipf.write(file_path, zipped_path)
+
+def args_from_logs(output_dir):
+    log_path = sorted(glob.glob(os.path.join(output_dir, "*.log")))[0]
+    regex = r"(.*)Applying model '([^']+)' to dataset '([^']+)'\."
+    dataset = None
+    model = None
+    args = []
+    with open(log_path, "r") as logf:
+        for line in logf:
+            idx = line.find(" Args: [")
+            if idx >= 0:
+                args = eval(line[idx+7:])
+            m = re.match(regex, line)
+            if m is not None:
+                model, dataset = m.group(2), m.group(3)
+    return dataset, model, args
 
 def backup_source(obj, output_dir, extra=[]):
     obj_pkg = re.sub(r"\..*$", "", inspect.getmodule(obj).__name__)
@@ -138,7 +154,7 @@ def backup_source(obj, output_dir, extra=[]):
         datetime.now().strftime('%Y%m%d%H%M%S')
     ))
     zipf = zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED)
-    addDirToZip(zipf, pkg_path, exclude=["__pycache__"])
+    zip_add_dir(zipf, pkg_path, exclude=["__pycache__"])
     for f in sum([glob.glob(extraf) for extraf in extra],[]):
         zipf.write(f)
     zipf.close()

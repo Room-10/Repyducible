@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import os
 import sys
 import importlib
 import pkgutil
@@ -44,6 +45,11 @@ def pkg_demo(pkg_name, args):
     return modules_demo(Experiment, data_modules, model_modules, args)
 
 def modules_demo(Experiment, data_modules, model_modules, args):
+    if 'DISPLAY' in os.environ and len(args) == 0:
+        from repyducible.gui import args_gui
+        args_gui(Experiment, data_modules, model_modules)
+        return
+
     parser = ArgumentParser(prog='demo', description="See README.md.")
     parser.add_argument('dataset', metavar='DATASET',
                         choices=data_modules.keys(),
@@ -59,14 +65,10 @@ def modules_demo(Experiment, data_modules, model_modules, args):
                              'and add --help to your command line.')
     pargs = parser.parse_args(args)
 
+    model_module = importlib.import_module(model_modules[pargs.model])
+    data_module = importlib.import_module(data_modules[pargs.dataset])
+    exp = Experiment(data_module.Data, model_module.Model, pargs.params)
     logging.info("Applying model '%s' to dataset '%s'." \
                  % (pargs.model, pargs.dataset))
-    return run_demo(Experiment, data_modules[pargs.dataset],
-                    model_modules[pargs.model], pargs.params)
-
-def run_demo(Experiment, data_modulename, model_modulename, args):
-    model_module = importlib.import_module(model_modulename)
-    data_module = importlib.import_module(data_modulename)
-    exp = Experiment(data_module.Data, model_module.Model, args)
     exp.run()
     return exp
