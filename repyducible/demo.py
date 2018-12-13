@@ -50,6 +50,12 @@ def modules_demo(Experiment, data_modules, model_modules, args):
         args_gui(Experiment, data_modules, model_modules)
         return
 
+    if len(args) > 0:
+        dataset, model, eargs = repyducible.util.args_from_logs(args[0])
+        if None not in [dataset, model]:
+            [eargs.remove(o) for o in ["--resume", "--snapshots"] if o in eargs]
+            args = [dataset, model] + eargs + ["--output"] + args
+
     parser = ArgumentParser(prog='demo', description="See README.md.")
     parser.add_argument('dataset', metavar='DATASET',
                         choices=data_modules.keys(),

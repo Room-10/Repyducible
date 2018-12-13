@@ -132,19 +132,21 @@ def zip_add_dir(zipf, path, exclude=[]):
             zipf.write(file_path, zipped_path)
 
 def args_from_logs(output_dir):
-    log_path = sorted(glob.glob(os.path.join(output_dir, "*.log")))[0]
-    regex = r"(.*)Applying model '([^']+)' to dataset '([^']+)'\."
+    log_paths = glob.glob(os.path.join(output_dir, "*.log"))
     dataset = None
     model = None
     args = []
-    with open(log_path, "r") as logf:
-        for line in logf:
-            idx = line.find(" Args: [")
-            if idx >= 0:
-                args = eval(line[idx+7:])
-            m = re.match(regex, line)
-            if m is not None:
-                model, dataset = m.group(2), m.group(3)
+    if len(log_paths) > 0:
+        log_path = sorted(log_paths)[0]
+        regex = r"(.*)Applying model '([^']+)' to dataset '([^']+)'\."
+        with open(log_path, "r") as logf:
+            for line in logf:
+                idx = line.find(" Args: [")
+                if idx >= 0:
+                    args += eval(line[idx+7:])
+                m = re.match(regex, line)
+                if m is not None:
+                    model, dataset = m.group(2), m.group(3)
     return dataset, model, args
 
 def backup_source(obj, output_dir, extra=[]):
