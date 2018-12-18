@@ -67,6 +67,8 @@ class Experiment(object):
         parser.add_argument('--snapshots', action="store_true", default=False,
                             help="Store snapshots of solver iteration. "
                                  "Only available for pdhg solver.")
+        parser.add_argument('--test', action="store_true", default=False,
+                            help="Run PDHG model tests.")
         self.pargs = parser.parse_args(args)
 
         if self.pargs.output == '':
@@ -124,6 +126,8 @@ class Experiment(object):
 
         if self.result is None or self.pargs.resume:
             self.model.setup_solver(self.pargs.solver)
+            if self.pargs.test and self.pargs.solver == "pdhg":
+                self.model.run_pdhg_tests()
             params = self.params['solver']
             if self.pargs.snapshots:
                 params = dict(params, cbfun=self.store_snapshot)
