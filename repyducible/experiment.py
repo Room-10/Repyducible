@@ -148,9 +148,9 @@ class Experiment(object):
         self.postprocessing()
         self.plot()
 
-    def store_snapshot(self, i, state, info):
+    def store_snapshot(self, state, info):
         outfile = os.path.join(self.output_dir, "snapshot-%s-%d.pickle"
-            % (datetime.now().strftime('%Y%m%d%H%M%S'), i))
+            % (datetime.now().strftime('%Y%m%d%H%M%S'), info['iter']))
         outdata = { 'data': self.model.post(state), 'details': info }
         with open(outfile, 'wb') as f:
             pickle.dump(outdata, f)
