@@ -69,6 +69,8 @@ class Experiment(object):
                                  "Only available for pdhg solver.")
         parser.add_argument('--test', action="store_true", default=False,
                             help="Run PDHG model tests.")
+        parser.add_argument('-v', action="store_true", default=False,
+                            help="Verbose logs to standard output.")
         self.pargs = parser.parse_args(args)
 
         if self.pargs.output == '':
@@ -76,6 +78,10 @@ class Experiment(object):
             self.output_dir = output_dir_name(self.output_dir)
         else:
             self.output_dir = self.pargs.output
+
+        if self.pargs.v:
+            for h in logging.getLogger().handlers:
+                h.setLevel(logging.DEBUG)
 
         output_dir_create(self.output_dir)
         add_log_file(logging.getLogger(), self.output_dir)
